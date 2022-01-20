@@ -1,5 +1,8 @@
 from enum import Enum
+from functools import reduce
+from itertools import chain
 from typing import List, Tuple, Optional, Dict
+import math
 
 
 class StorageType(Enum):
@@ -41,13 +44,20 @@ class Graph:
         return m
 
     @staticmethod
-    def __build_graph_by_list(edge_list: List[Tuple[int, int, Optional[int]]]) -> Dict[
-        int, List[Tuple[int, Optional[int]]]]:
+    def __build_graph_by_list(edge_list: List[Tuple[int, int, Optional[int]]]) -> Dict[int, List[Tuple[int, Optional[int]]]]:
         storage = {}
+        edges = [(e[0], e[1]) for e in edge_list]
+        nodes = set()
+
+        for i in edges:
+            nodes.add(i[0])
+            nodes.add(i[1])
+
+        for node in nodes:
+            if node not in storage:
+                storage[node] = []
 
         for edge in edge_list:
-            if edge[0] not in storage:
-                storage[edge[0]] = []
             storage[edge[0]].append((edge[1], edge[2]))
 
         return storage
@@ -94,7 +104,7 @@ class Graph:
                 visited.add((_start, None))
 
                 for v in self.__storage[_start]:
-                    if v not in visited:
+                    if (v[0], None) not in visited:
                         inner_dfs(v[0])
 
         inner_dfs(start)
@@ -119,6 +129,20 @@ class Graph:
     def dijkstra(self, start, end):
         pass
 
+    def dfs_topological_sort_helper(self, idx, ordering, start: int, v) -> int:
+
+        if self.__storage_type == StorageType.ADJACENCY_MATRIX:
+            pass
+        else:
+            v[start] = True
+
+            for vs in self.__storage[start]:
+                if not v[vs[0]]:
+                    idx = self.dfs_topological_sort_helper(idx, ordering, vs[0], v)
+
+        ordering[idx] = (start, None)
+        return idx - 1
+
     def get_topological_ordering(self):
         n = len(self.__storage)
         v = [False] * n
@@ -126,31 +150,55 @@ class Graph:
         idx = n - 1
 
         for at in range(n):
-            if not v[at]:
-                visited_nodes = set()
-                self.dfs(at, visited_nodes)
+            if at in self.__storage and not v[at]:
+                idx = self.dfs_topological_sort_helper(idx, ordering, at, v)
 
-                for node_id in visited_nodes:
-                    ordering[idx] = node_id[0]
-                    v[node_id[0]] = True
-                    idx -= 1
+                # for node_id in visited_nodes:
+                #     ordering[idx] = node_id[0]
+                #     v[node_id[0]] = True
+                #     idx -= 1
 
         return ordering
+
+    def find_shortest_path(self, start):
+
+        # To determine the single shortest path we need that all vertices have a topological order
+        nodes_in_topological_order = self.get_topological_ordering()
+
+        # Every initial distance is infinite
+        distances = [math.inf] * len(self.__storage)
+
+        # We're departing from vertex start, obviously the distance for itself is zero
+        distances[start] = 0
+
+        # From each vertex we'll calculate the distances following the topological order array
+        for node in self.__storage.keys():
+            node_tuple = nodes_in_topological_order[node]
+            node_idx = node_tuple[0] # Node -> (Node, Weight)
+
+            if distances[node_idx] != math.inf:
+
+                edges_from_node = self.__storage.get(node_idx)
+
+                # We'll calculate from the node node_idx following the all its out-degree edges
+                for edge in edges_from_node:
+                    new_distance = distances[node_idx] + edge[1]
+                    distances[edge[0]] = min(distances[edge[0]], new_distance)
+
+        return distances
 
 
 if __name__ == '__main__':
     g = Graph(6, [
-        (0, 1, None),
-        (0, 2, None),
-        (1, 2, None),
-        (2, 0, None),
-        (2, 3, None),
-        (3, 2, None),
-        (3, 1, None),
-        (1, 3, None),
-        (3, 3, None),
-        (30, 90, None),
-        (90, 30, None)
+        (0, 1, 3),
+        (0, 2, 2),
+        (0, 5, 3),
+        (1, 3, 1),
+        (1, 2, 6),
+        (2, 3, 1),
+        (2, 4, 10),
+        (3, 4, 5),
+        (5, 4, 7)
     ], storage_type=StorageType.ADJACENCY_LIST)
 
     """
@@ -158,7 +206,7 @@ if __name__ == '__main__':
     
     """
 
-    print(g.get_topological_ordering())
+    print(g.find_shortest_path(0)[6])
 
     """
     storage = {}
