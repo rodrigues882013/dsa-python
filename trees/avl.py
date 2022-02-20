@@ -8,7 +8,6 @@ Delete -> Best Case: O(log N), Worst Case: O(log N)
 Search
 """
 
-
 class AVLTree(Tree):
 
     @staticmethod
