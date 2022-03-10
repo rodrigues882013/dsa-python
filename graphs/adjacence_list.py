@@ -1,16 +1,18 @@
 import math
 from typing import List, Tuple, Optional, Dict
 
+from graphs.common import Graph, Method
 from linears.queues import PriorityQueue
 from collections import deque
 
 
-class Graph:
+class AGraph(Graph):
     def __init__(self, node_number: int, edge_list: List[Tuple[int, int, Optional[int]]]):
-        self.__storage = Graph.__build_graph_by_list(edge_list)
+        self.__storage = self.__build_graph_by_list(edge_list)
 
     @staticmethod
-    def __build_graph_by_list(edge_list: List[Tuple[int, int, Optional[int]]]) -> Dict[int, List[Tuple[int, Optional[int]]]]:
+    def __build_graph_by_list(edge_list: List[Tuple[int, int, Optional[int]]]) -> Dict[
+        int, List[Tuple[int, Optional[int]]]]:
         storage = {}
         edges = [(e[0], e[1]) for e in edge_list]
         nodes = set()
@@ -49,16 +51,16 @@ class Graph:
     def dfs(self, start: int, visited: set) -> List[int]:
         path = []
 
-        def inner_dfs(_start: int):
+        def helper(_start: int):
             path.append(_start)
 
             visited.add((_start, None))
 
             for v in self.__storage[_start]:
                 if (v[0], None) not in visited:
-                    inner_dfs(v[0])
+                    helper(v[0])
 
-        inner_dfs(start)
+        helper(start)
 
         return path
 
@@ -67,52 +69,50 @@ class Graph:
         visited = [False] * number_of_nodes
         distances = [math.inf] * number_of_nodes
         distances[0] = 0
-        queue = PriorityQueue((0, start))
+        pq = PriorityQueue((0, start))
 
-        while not queue.is_empty():
-            minimum_value, idx = queue.dequeue()
+        while not pq.is_empty():
+            minimum_value, idx = pq.dequeue()
             visited[idx] = True
 
             for edge in self.__storage[idx]:
+
                 if not visited[edge[0]]:
                     new_distance = distances[idx] + edge[1]
+
                     if new_distance < distances[edge[0]]:
                         distances[edge[0]] = new_distance
-                        queue.enqueue((new_distance, edge[0]))
+                        pq.enqueue((new_distance, edge[0]))
 
         return distances
 
-    def find_shortest_path_by_dijkstra(self, start, end):
-        pass
-
-    def dfs_topological_sort_helper(self, ordering, start: int, v):
-
-        v[start] = True
-
-        for vs in self.__storage[start]:
-            if not v[vs[0]]:
-                self.dfs_topological_sort_helper(ordering, vs[0], v)
-
-        #ordering[idx] = (start, None)
-        ordering.appendleft((start, None))
-        #return idx - 1
-
-    def get_topological_ordering(self):
+    def sort_topologically(self):
         number_of_nodes = len(self.__storage)
         visited = [False] * number_of_nodes
-        ordering = [0] * number_of_nodes
         ordering_queue = deque([])
-        #idx = number_of_nodes - 1
+
+        # It is just a dfs with some tricks
+        def helper(start: int):
+            visited[start] = True
+
+            for vs in self.__storage[start]:
+                if not visited[vs[0]]:
+                    helper(vs[0])
+
+            ordering_queue.appendleft((start, None))
 
         for at in range(number_of_nodes):
             if at in self.__storage and not visited[at]:
-                self.dfs_topological_sort_helper(ordering_queue, at, visited)
-        return ordering_queue
+                helper(at)
 
-    def find_shortest_path(self, start):
+        return list(ordering_queue)
 
+    def __find_shortest_path_by_dijkstra(self, start, end):
+        pass
+
+    def __find_shortest_path_by_brute_force(self, start, end):
         # To determine the single shortest path we need that all vertices have a topological order
-        nodes_in_topological_order = self.get_topological_ordering()
+        nodes_in_topological_order = self.sort_topologically()
 
         # Every initial distance is infinite
         distances = [math.inf] * len(self.__storage)
@@ -123,7 +123,7 @@ class Graph:
         # From each vertex we'll calculate the distances following the topological order array
         for node in self.__storage.keys():
             node_tuple = nodes_in_topological_order[node]
-            node_idx = node_tuple[0] # Node -> (Node, Weight)
+            node_idx = node_tuple[0]  # Node -> (Node, Weight)
 
             if distances[node_idx] != math.inf:
 
@@ -136,9 +136,21 @@ class Graph:
 
         return distances
 
+    def find_shortest_path(self, start, by_method: Method):
+        ans = []
+
+        if by_method == Method.DIJKSTRA:
+            pass
+        elif by_method == Method.BELLMAN_FORD:
+            pass
+        else:
+            ans = self.__find_shortest_path_by_brute_force(start, 0)
+
+        return ans
+
 
 if __name__ == '__main__':
-    g = Graph(6, [
+    g = AGraph(6, [
         (0, 1, 3),
         (0, 2, 2),
         (0, 5, 3),
@@ -155,7 +167,7 @@ if __name__ == '__main__':
     
     """
     # [(0, None), (5, None), (1, None), (2, None), (3, None), (4, None)] <- right
-    print(g.get_topological_ordering())
+    print(g.find_shortest_path(0))
 
     """
     storage = {}
