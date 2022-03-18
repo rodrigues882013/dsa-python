@@ -8,22 +8,15 @@ from collections import deque
 
 class AGraph(Graph):
     def __init__(self, node_number: int, edge_list: List[Tuple[int, int, Optional[int]]]):
-        self.__storage = self.__build_graph_by_list(edge_list)
+        self.__storage = self.__build_graph_by_list(node_number, edge_list)
 
     @staticmethod
-    def __build_graph_by_list(edge_list: List[Tuple[int, int, Optional[int]]]) -> Dict[
+    def __build_graph_by_list(node_number: int, edge_list: List[Tuple[int, int, Optional[int]]]) -> Dict[
         int, List[Tuple[int, Optional[int]]]]:
         storage = {}
-        edges = [(e[0], e[1]) for e in edge_list]
-        nodes = set()
 
-        for i in edges:
-            nodes.add(i[0])
-            nodes.add(i[1])
-
-        for node in nodes:
-            if node not in storage:
-                storage[node] = []
+        for i in range(node_number):
+            storage[i] = []
 
         for edge in edge_list:
             storage[edge[0]].append((edge[1], edge[2]))
@@ -64,31 +57,90 @@ class AGraph(Graph):
 
         return path
 
-    def dijkstra(self, start):
-        number_of_nodes = len(self.__storage)
-        visited = [False] * number_of_nodes
-        distances = [math.inf] * number_of_nodes
+    def __dijkstra_with_target_node(self, start: int, end: int) -> Optional[float]:
+        number_of_vertices = len(self.__storage)
+        visited = [False] * number_of_vertices
+        distances = [math.inf] * number_of_vertices
         distances[0] = 0
-        pq = PriorityQueue((0, start))
+        pq = PriorityQueue((0, start))  # (distance, edge)
 
         while not pq.is_empty():
-            minimum_value, idx = pq.dequeue()
-            visited[idx] = True
+            minimum_value, node_id = pq.dequeue()
+            visited[node_id] = True
 
-            for edge in self.__storage[idx]:
+            if minimum_value > distances[node_id]:
+                continue
 
-                if not visited[edge[0]]:
-                    new_distance = distances[idx] + edge[1]
+            for edge in self.__storage[node_id]:
 
-                    if new_distance < distances[edge[0]]:
-                        distances[edge[0]] = new_distance
-                        pq.enqueue((new_distance, edge[0]))
+                if visited[edge[0]]:
+                    continue
+
+                new_distance = distances[node_id] + edge[1]
+
+                if new_distance < distances[edge[0]]:
+                    distances[edge[0]] = new_distance
+                    pq.enqueue((new_distance, edge[0]))
+
+            if end and node_id == end:
+                return distances[end]
+
+        return None
+
+    def __dijkstra_without_target(self, start) -> List[float]:
+        number_of_vertices = len(self.__storage)
+        visited = [False] * number_of_vertices
+        distances = [math.inf] * number_of_vertices
+        distances[start] = 0
+        pq = PriorityQueue((0, start))  # (distance, edge)
+
+        while not pq.is_empty():
+            minimum_value, node_id = pq.dequeue()
+            visited[node_id] = True
+
+            if minimum_value > distances[node_id]:
+                continue
+
+            for edge in self.__storage[node_id]:
+
+                if visited[edge[0]]:
+                    continue
+
+                new_distance = distances[node_id] + edge[1]
+
+                if new_distance < distances[edge[0]]:
+                    distances[edge[0]] = new_distance
+                    pq.enqueue((new_distance, edge[0]))
 
         return distances
 
+    def __bellman_ford_without_target(self, start) -> List[float]:
+        number_of_vertices = len(self.__storage)
+        distances = [math.inf] * number_of_vertices
+        distances[start] = 0
+
+        for _ in range(number_of_vertices - 1):
+            for vertex in range(0, number_of_vertices):
+                for edge in self.__storage[vertex]:
+                    new_distance = distances[vertex] + edge[1]
+
+                    if new_distance < distances[edge[0]]:
+                        distances[edge[0]] = new_distance
+
+        # Running a second time, at this point any value from distance should be change,
+        # if so there is a cycle in the graph
+        for _ in range(number_of_vertices - 1):
+            for vertex in range(0, number_of_vertices):
+                for edge in self.__storage[vertex]:
+                    if distances[vertex] + edge[1] < distances[edge[0]]:
+                        distances[edge[0]] = -math.inf
+
+        return distances
+
+
     def sort_topologically(self):
-        number_of_nodes = len(self.__storage)
-        visited = [False] * number_of_nodes
+        number_of_vertices = len(self.__storage)
+        visited = [False] * number_of_vertices
         ordering_queue = deque([])
 
         # It is just a dfs with some tricks
@@ -101,7 +153,7 @@ class AGraph(Graph):
 
             ordering_queue.appendleft((start, None))
 
-        for at in range(number_of_nodes):
+        for at in range(number_of_vertices):
             if at in self.__storage and not visited[at]:
                 helper(at)
 
@@ -136,13 +188,12 @@ class AGraph(Graph):
 
         return distances
 
-    def find_shortest_path(self, start, by_method: Method):
-        ans = []
+    def find_shortest_path(self, start, by_method: Method = None):
 
         if by_method == Method.DIJKSTRA:
-            pass
+            ans = self.__dijkstra_without_target(0)
         elif by_method == Method.BELLMAN_FORD:
-            pass
+            ans = self.__bellman_ford_without_target(start)
         else:
             ans = self.__find_shortest_path_by_brute_force(start, 0)
 
@@ -150,16 +201,19 @@ class AGraph(Graph):
 
 
 if __name__ == '__main__':
-    g = AGraph(6, [
-        (0, 1, 3),
-        (0, 2, 2),
-        (0, 5, 3),
-        (1, 3, 1),
-        (1, 2, 6),
-        (2, 3, 1),
-        (2, 4, 10),
-        (3, 4, 5),
-        (5, 4, 7)
+
+    # Use that input to test Bellman-Ford
+    g = AGraph(9, [
+        (0, 1, 1),
+        (1, 2, 1),
+        (2, 4, 1),
+        (4, 3, -3),
+        (3, 2, 1),
+        (1, 5, 4),
+        (1, 6, 4),
+        (5, 6, 5),
+        (6, 7, 4),
+        (5, 7, 3)
     ])
 
     """
@@ -167,7 +221,7 @@ if __name__ == '__main__':
     
     """
     # [(0, None), (5, None), (1, None), (2, None), (3, None), (4, None)] <- right
-    print(g.find_shortest_path(0))
+    print(g.find_shortest_path(0, Method.BELLMAN_FORD))
 
     """
     storage = {}

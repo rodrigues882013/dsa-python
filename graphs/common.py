@@ -8,6 +8,12 @@ class Method(Enum):
     BELLMAN_FORD = 3
 
 
+class Edge:
+    def __init__(self, to: int, cost: float):
+        self._to = to
+        self._cost = cost
+
+
 class Graph(ABC):
 
     @abstractmethod
