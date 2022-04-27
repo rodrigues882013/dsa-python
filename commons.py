@@ -90,3 +90,10 @@ class Tree:
 
         helper(self.root)
         return ans
+
+
+class TrieNode:
+
+    def __init__(self):
+        self.children = {}
+        self.is_end = False
