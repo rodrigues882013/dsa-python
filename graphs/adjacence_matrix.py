@@ -1,28 +1,11 @@
+import math
+from collections import deque
 from typing import List, Tuple, Optional
 
 
 class Graph:
-    def __init__(self, node_number: int, edge_list: List[Tuple[int, int, Optional[int]]]):
-        self.__storage = self.__build_graph_by_matrix(node_number, edge_list)
-
-    @staticmethod
-    def __build_graph_by_matrix(node_number, edge_list: List[Tuple[int, int, Optional[int]]]) -> List[List[int]]:
-        max_item = sorted(edge_list, key=lambda x: x[1], reverse=True)[0][1]
-
-        node_number = max_item + 1 if node_number < max_item else max_item
-
-        m = [[0 for _ in range(node_number)] for _ in range(node_number)]
-
-        for idx in range(len(edge_list)):
-            node_one, node_two, weight = edge_list[idx]
-
-            if weight:
-                m[node_one][node_two] = weight
-
-            else:
-                m[node_one][node_two] += 1
-
-        return m
+    def __init__(self, grid: List[List[int]]):
+        self.__storage = grid
 
     def bfs(self, start) -> List[int]:
         queue = [start]
@@ -66,24 +49,46 @@ class Graph:
     def dfs_topological_sort_helper(self, idx, ordering, start: int, v) -> int:
         pass
 
-    def get_topological_ordering(self):
-        pass
+    def sort_topologically(self):
+        m = len(self.__storage)
+        n = len(self.__storage[0])
+        visited = set()
+        ordering_queue = deque([])
 
-    def find_shortest_path(self, start):
-        pass
+        # It is just a dfs with some tricks
+        def helper(row: int, col: int):
+            visited.add((row, col))
+
+            for (next_row, next_col) in [(row + 1, col), (row, col + 1), (row - 1, col), (row, col - 1)]:
+                if 0 <= next_row < m and 0 <= next_col < n and (next_row, next_col) not in visited and self.__storage:
+                    helper(next_row, next_col)
+
+            ordering_queue.appendleft((row, col))
+
+        for i in range(m):
+            return list(ordering_queue)
 
 
 if __name__ == '__main__':
-    g = Graph(6, [
-        (0, 1, 3),
-        (0, 2, 2),
-        (0, 5, 3),
-        (1, 3, 1),
-        (1, 2, 6),
-        (2, 3, 1),
-        (2, 4, 10),
-        (3, 4, 5),
-        (5, 4, 7)
+    # g = Graph(6, [
+    #     (0, 1, 3),
+    #     (0, 2, 2),
+    #     (0, 5, 3),
+    #     (1, 3, 1),
+    #     (1, 2, 6),
+    #     (2, 3, 1),
+    #     (2, 4, 10),
+    #     (3, 4, 5),
+    #     (5, 4, 7)
+    # ])
+
+    g = Graph([
+        [0, 3, 2, 0, 0, 3],
+        [0, 0, 6, 1, 0, 0],
+        [0, 0, 0, 1, 10, 0],
+        [0, 0, 0, 0, 5, 0],
+        [0, 0, 0, 0, 5, 0],
+        [0, 0, 0, 0, 7, 0]
     ])
 
-    print(g.dijkstra(0))
+    print(g.sort_topologically())

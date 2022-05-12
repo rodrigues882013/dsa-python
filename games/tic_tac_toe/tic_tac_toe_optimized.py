@@ -47,20 +47,3 @@ class TicTacToe:
             self.anti_diagonal_score += value
 
         return self.has_winner(row, col, player)
-
-
-def main():
-    game = TicTacToe(3)
-    movements = [[0, 0, 1], [0, 2, 2], [2, 2, 1], [1, 1, 2], [2, 0, 1], [1, 0, 2], [2, 1, 1]]
-
-    idx = 0
-    result = game.move(*movements[idx])
-    while result == 0 or idx > len(movements) - 1:
-        idx += 1
-        result = game.move(*movements[idx])
-
-    print(f'Player: {result} win')
-
-
-if __name__ == '__main__':
-    main()

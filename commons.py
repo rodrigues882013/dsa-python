@@ -9,7 +9,7 @@ class Color(Enum):
 
 
 class ListNode:
-    def __init__(self, value, next_: Optional['ListNode'] = None, previous: Optional['ListNode'] = None):
+    def __init__(self, value = None, next_: Optional['ListNode'] = None, previous: Optional['ListNode'] = None):
         self.value = value
         self.next = next_
         self.prev = previous
@@ -96,4 +96,13 @@ class TrieNode:
 
     def __init__(self):
         self.children = {}
+        self.is_end = False
+
+
+class FileNode:
+
+    def __init__(self, key='/'):
+        self.key = key
+        self.children = {}
+        self.contents = ""
         self.is_end = False
